@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #FDFCFB;
+    --ink: #1A1A1A;
+    --accent: #D4AF37;
+    --accent-hover: #C5A028;
+    --muted: #717171;
+    --card-bg: #FFFFFF;
+    --editorial-bg: linear-gradient(135deg, #F5F5F0 0%, #E8E8E3 100%);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  h1, h2, h3, .font-serif-title {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-serif-title {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.bg-paper {
+  background-color: #FDFCFB;
+}
+
+.bg-ink {
+  background-color: #1A1A1A;
+}
+
+.text-ink {
+  color: #1A1A1A;
+}
+
+.bg-gold {
+  background-color: #D4AF37;
+}
+
+.bg-gold-light {
+  background-color: #FBF7E8;
+}
+
+.text-gold {
+  color: #D4AF37;
+}
+
+.text-gold-dark {
+  color: #B38F1E;
+}
+
+.border-gold {
+  border-color: #D4AF37;
+}
+
+.border-gold-subtle {
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.bg-editorial-gradient {
+  background: linear-gradient(135deg, #F5F5F0 0%, #E8E8E3 100%);
+}
+
+.bg-editorial-dark {
+  background: linear-gradient(135deg, #1A1A1A 0%, #2A2A2A 100%);
+}
+
+/* Custom scrollbar for aesthetic finish */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
