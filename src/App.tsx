@@ -3,8 +3,12 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
+import { FloatingChatBot } from './components/FloatingChatBot';
+import { HomePage } from './components/HomePage';
 import { ShopCatalog } from './components/ShopCatalog';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { DirectOrderModal } from './components/DirectOrderModal';
+import { ImageLightboxModal } from './components/ImageLightboxModal';
 import { CartPage } from './components/CartPage';
 import { AnnoncesPage } from './components/AnnoncesPage';
 import { AidePage } from './components/AidePage';
@@ -13,12 +17,20 @@ import { AuthPages } from './components/AuthPages';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ChatBotModal } from './components/ChatBotModal';
 import { AccountPage } from './components/AccountPage';
+import { ToastContainer } from './components/ToastContainer';
+import { AdminIncomingCallBanner } from './components/AdminIncomingCallBanner';
+import { LiveCallRoomModal } from './components/LiveCallRoomModal';
+import { WhatsAppNumberSelectorModal } from './components/WhatsAppNumberSelectorModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const AppContent: React.FC = () => {
   const { activePage } = useApp();
 
   const renderCurrentPage = () => {
     switch (activePage) {
+      case 'accueil':
+        return <HomePage />;
+      case 'boutique':
       case 'shop':
         return <ShopCatalog />;
       case 'annonces':
@@ -40,7 +52,7 @@ const AppContent: React.FC = () => {
       case 'chat':
         return <ChatBotModal />;
       default:
-        return <ShopCatalog />;
+        return <HomePage />;
     }
   };
 
@@ -55,15 +67,24 @@ const AppContent: React.FC = () => {
 
       <Footer />
       <FloatingWhatsApp />
+      <FloatingChatBot />
       <ProductDetailModal />
+      <DirectOrderModal />
+      <ImageLightboxModal />
+      <ToastContainer />
+      <AdminIncomingCallBanner />
+      <LiveCallRoomModal />
+      <WhatsAppNumberSelectorModal />
     </div>
   );
 };
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

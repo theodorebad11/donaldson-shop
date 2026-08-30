@@ -75,14 +75,14 @@ export const AidePage: React.FC = () => {
 
           <div className="space-y-3 pt-2 text-xs">
             <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Email Client Yahoo :</span>
+              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Email Administrateur 1 (Yahoo) :</span>
               <a href={`mailto:${CONTACT_EMAILS.yahoo}`} className="font-bold text-ink hover:underline text-sm">
                 {CONTACT_EMAILS.yahoo}
               </a>
             </div>
 
             <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Email Administrateur :</span>
+              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Email Administrateur 2 (Gmail) :</span>
               <a href={`mailto:${CONTACT_EMAILS.admin}`} className="font-bold text-ink hover:underline text-sm">
                 {CONTACT_EMAILS.admin}
               </a>

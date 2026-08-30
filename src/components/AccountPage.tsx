@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { User as UserIcon, Camera, Save, CheckCircle, PackageCheck, Shield, Phone, Mail, LogOut, ArrowRight } from 'lucide-react';
+import { User as UserIcon, Camera, Save, CheckCircle, PackageCheck, Shield, Phone, Mail, LogOut, ArrowRight, Search, Truck } from 'lucide-react';
 
 export const AccountPage: React.FC = () => {
-  const { currentUser, updateUserProfile, logoutUser, setActivePage, orders } = useApp();
+  const { currentUser, updateUserProfile, logoutUser, setActivePage, orders, isAdmin, isSuperAdmin } = useApp();
 
   const [firstName, setFirstName] = useState(currentUser?.firstName || '');
   const [lastName, setLastName] = useState(currentUser?.lastName || '');
@@ -12,6 +12,15 @@ export const AccountPage: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [trackOrderId, setTrackOrderId] = useState('');
+
+  const handleQuickTrack = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trackOrderId.trim()) {
+      localStorage.setItem('donaldson_track_order_id', trackOrderId.trim());
+      setActivePage('orders');
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -98,11 +107,11 @@ export const AccountPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 space-y-8 animate-fadeIn">
       {/* Header Banner */}
-      <div className="bg-ink text-gold p-6 sm:p-8 rounded-3xl border border-gold/30 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div className="bg-white text-stone-900 p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-md flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           {/* Avatar / Photo preview */}
           <div className="relative group shrink-0">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-gold/60 bg-stone-800 flex items-center justify-center shadow-lg">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-stone-300 bg-stone-100 flex items-center justify-center shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -110,14 +119,14 @@ export const AccountPage: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="font-serif-title font-black text-3xl text-gold">
+                <span className="font-serif-title font-black text-3xl text-stone-800">
                   {firstName[0] || 'U'}{lastName[0] || ''}
                 </span>
               )}
             </div>
             
             {/* Gallery Upload File Input Trigger */}
-            <label className="absolute bottom-0 right-0 p-2 rounded-full bg-gold text-ink cursor-pointer hover:bg-amber-300 transition-transform shadow-md hover:scale-110">
+            <label className="absolute bottom-0 right-0 p-2 rounded-full bg-stone-900 text-white cursor-pointer hover:bg-stone-800 transition-transform shadow-md hover:scale-110">
               <Camera className="w-4 h-4" />
               <input
                 type="file"
@@ -129,23 +138,23 @@ export const AccountPage: React.FC = () => {
           </div>
 
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold/80 block">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 block">
               {currentUser.role === 'super_admin' ? 'Administrateur Principal' : currentUser.role === 'assistant_admin' ? 'Assistant Admin' : 'Compte Client DONALDSON'}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-white mt-1">
+            <h1 className="text-2xl sm:text-3xl font-serif-title font-bold text-stone-900 mt-1">
               {firstName} {lastName}
             </h1>
-            <p className="text-xs text-stone-300 font-light mt-1 flex items-center gap-2">
-              <Mail className="w-3.5 h-3.5 text-gold" /> {email}
+            <p className="text-xs text-stone-600 font-medium mt-1 flex items-center gap-2">
+              <Mail className="w-3.5 h-3.5 text-stone-700" /> {email}
             </p>
           </div>
         </div>
 
         <button
           onClick={logoutUser}
-          className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-rose-900/80 text-stone-200 hover:text-white border border-stone-700 font-bold text-xs transition-all flex items-center gap-2"
+          className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-rose-50 text-stone-800 hover:text-rose-700 border border-stone-200 font-bold text-xs transition-all flex items-center gap-2"
         >
-          <LogOut className="w-4 h-4 text-rose-400" />
+          <LogOut className="w-4 h-4 text-rose-600" />
           Déconnexion
         </button>
       </div>
@@ -260,6 +269,40 @@ export const AccountPage: React.FC = () => {
 
         {/* Right Info Box */}
         <div className="space-y-6">
+          
+          {/* Direct Order Tracking Form Widget */}
+          <div className="bg-white text-stone-900 p-6 rounded-3xl border border-stone-200 shadow-md space-y-3">
+            <div className="flex items-center gap-2 text-amber-600 text-xs font-extrabold uppercase tracking-wider">
+              <Truck className="w-4 h-4 text-amber-600 animate-bounce" />
+              <span>Suivi de Commande en Direct</span>
+            </div>
+            
+            <p className="text-xs text-stone-600 font-medium leading-relaxed">
+              Saisissez un numéro de commande pour connaître l'état de préparation et de livraison.
+            </p>
+
+            <form onSubmit={handleQuickTrack} className="space-y-2 pt-1">
+              <div className="relative">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={trackOrderId}
+                  onChange={(e) => setTrackOrderId(e.target.value)}
+                  placeholder="N° de commande (ex: 17854...)"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-stone-900 placeholder-stone-400 text-xs font-semibold outline-none focus:border-stone-800"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-extrabold text-xs transition-all shadow-sm flex items-center justify-center gap-2"
+              >
+                <span>Localiser mon Colis</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          </div>
+
           <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-md space-y-4">
             <h3 className="font-serif-title font-bold text-ink text-base flex items-center gap-2 border-b border-stone-100 pb-2">
               <PackageCheck className="w-5 h-5 text-gold-dark" />
@@ -273,10 +316,29 @@ export const AccountPage: React.FC = () => {
               onClick={() => setActivePage('orders')}
               className="w-full py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs transition-all flex items-center justify-between"
             >
-              <span>Voir mes commandes</span>
+              <span>Voir mes commandes ({userOrders.length})</span>
               <ArrowRight className="w-4 h-4 text-gold-dark" />
             </button>
           </div>
+
+          {isAdmin && (
+            <div className="p-5 rounded-3xl bg-white text-stone-900 border border-stone-200 space-y-3 shadow-md">
+              <span className="font-bold text-amber-700 block flex items-center gap-2 text-xs uppercase tracking-wider">
+                <Shield className="w-4 h-4 text-amber-700" />
+                {isSuperAdmin ? 'Administration Principale' : 'Espace Assistant Admin'}
+              </span>
+              <p className="text-stone-600 text-xs font-medium leading-relaxed">
+                Vous disposez d'un rôle d'administration ({isSuperAdmin ? 'Super Admin' : 'Assistant Admin'}). Vous pouvez accéder directement à votre espace de gestion.
+              </p>
+              <button
+                onClick={() => setActivePage('admin')}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-extrabold text-xs transition-all flex items-center justify-between shadow-sm"
+              >
+                <span>Accéder à mon Espace Admin</span>
+                <ArrowRight className="w-4 h-4 text-stone-950" />
+              </button>
+            </div>
+          )}
 
           <div className="p-5 rounded-3xl bg-amber-50/80 border border-gold/40 space-y-2 text-xs">
             <span className="font-bold text-ink block flex items-center gap-2">

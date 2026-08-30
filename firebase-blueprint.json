@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Article ou équipement de sport vendu dans la boutique",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "images": { "type": "array" },
+        "description": { "type": "string" },
+        "stock": { "type": "number" },
+        "rating": { "type": "number" },
+        "sizes": { "type": "array" },
+        "colors": { "type": "array" },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "category", "image"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Catégorie de produits dans le catalogue",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Annonces officielles, bannières et actualités sportives",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string" },
+        "active": { "type": "boolean" },
+        "date": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "actionUrl": { "type": "string" },
+        "actionLabel": { "type": "string" }
+      },
+      "required": ["id", "title", "content"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Commande client enregistrée sur le site ou via WhatsApp",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "clientEmail": { "type": "string" },
+        "wantsDelivery": { "type": "boolean" },
+        "deliveryAddress": { "type": "string" },
+        "deliveryCity": { "type": "string" },
+        "pickupConfirmed": { "type": "boolean" },
+        "deliveryNotes": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "orderType": { "type": "string" },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "clientName", "clientPhone", "totalAmount", "status", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Notification d'alerte client ou administrateur",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "readBy": { "type": "array" }
+      },
+      "required": ["id", "targetUserId", "title", "message", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message de discussion du support et de l'assistant IA",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "audioUrl": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "sender", "text", "timestamp"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Compte utilisateur client ou administrateur",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string" },
+        "assistantRoles": { "type": "array" },
+        "password": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "CallRequest": {
+      "title": "CallRequest",
+      "description": "Demande d'appel audio ou vidéo en direct",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "callerId": { "type": "string" },
+        "callerName": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "type", "callerId", "callerName", "status", "timestamp"]
+    },
+    "PromoCode": {
+      "title": "PromoCode",
+      "description": "Code promotionnel de réduction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "discountPercent": { "type": "number" },
+        "maxUses": { "type": "number" },
+        "usedCount": { "type": "number" },
+        "applicableProductIds": { "type": "array" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "code", "discountPercent", "active", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Avis et retours d'expérience clients authentiques",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "author": { "type": "string" },
+        "location": { "type": "string" },
+        "role": { "type": "string" },
+        "rating": { "type": "number" },
+        "date": { "type": "string" },
+        "product": { "type": "string" },
+        "comment": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "author", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection des articles et équipements sportifs"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection des catégories de produits"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Collection des annonces et bannières"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection des commandes clients"
+    },
+    "/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "Collection des notifications système"
+    },
+    "/chatMessages/{msgId}": {
+      "schema": "ChatMessage",
+      "description": "Collection des messages de chat et support IA"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection des profils utilisateurs et administrateurs"
+    },
+    "/callRequests/{callId}": {
+      "schema": "CallRequest",
+      "description": "Collection des demandes d'appels direct live"
+    },
+    "/promocodes/{promoId}": {
+      "schema": "PromoCode",
+      "description": "Collection des codes promotionnels"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Collection des avis et témoignages clients"
+    }
+  }
+}

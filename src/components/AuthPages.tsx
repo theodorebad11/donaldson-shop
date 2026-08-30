@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import logoImg from '../assets/images/donaldson_shop_logo_1786794643658.jpg';
 import { User, Lock, Mail, Phone, UserCheck, ShieldCheck, ArrowRight, KeyRound, AlertCircle } from 'lucide-react';
 import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASS } from '../data/initialData';
 
@@ -50,7 +51,8 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
     } else {
       setSuccessMsg(result.message);
       setTimeout(() => {
-        if (result.user?.role === 'super_admin' || result.user?.email === SUPER_ADMIN_EMAIL) {
+        const isAdminUser = result.user?.role === 'super_admin' || result.user?.role === 'assistant_admin' || result.user?.email === SUPER_ADMIN_EMAIL;
+        if (isAdminUser) {
           setActivePage('admin');
         } else {
           setActivePage('shop');
@@ -76,7 +78,8 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
     } else {
       setSuccessMsg(result.message);
       setTimeout(() => {
-        if (result.user?.role === 'super_admin' || result.user?.email === SUPER_ADMIN_EMAIL) {
+        const isAdminUser = result.user?.role === 'super_admin' || result.user?.role === 'assistant_admin' || result.user?.email === SUPER_ADMIN_EMAIL;
+        if (isAdminUser) {
           setActivePage('admin');
         } else {
           setActivePage('shop');
@@ -92,9 +95,12 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
         {/* Header banner - Ink & Gold Editorial Theme */}
         <div className="bg-ink p-8 text-white text-center relative overflow-hidden border-b border-gold/30">
           <div className="relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-gold text-ink font-serif-title font-bold text-2xl mx-auto flex items-center justify-center mb-3 shadow-md border border-gold/50">
-              D
-            </div>
+            <img
+              src={logoImg}
+              alt="DONALDSON SHOP Logo"
+              referrerPolicy="no-referrer"
+              className="h-14 w-auto object-contain mx-auto mb-3 rounded-2xl bg-white p-1 shadow-md border border-gold/40"
+            />
             <h2 className="text-2xl font-serif-title font-bold tracking-tight text-white">DONALDSON <span className="text-gold italic font-editorial">SHOP</span></h2>
           </div>
         </div>
@@ -103,20 +109,20 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
         <div className="flex border-b border-stone-200 bg-stone-100/60 p-1">
           <button
             onClick={() => { setMode('login'); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-2xl transition-all uppercase tracking-wider ${
+            className={`flex-1 py-3 text-xs sm:text-sm font-extrabold rounded-full transition-all uppercase tracking-wider cursor-pointer ${
               mode === 'login'
-                ? 'bg-ink text-gold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-stone-900 text-white shadow-md'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
             }`}
           >
             Se Connecter
           </button>
           <button
             onClick={() => { setMode('register'); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-2xl transition-all uppercase tracking-wider ${
+            className={`flex-1 py-3 text-xs sm:text-sm font-extrabold rounded-full transition-all uppercase tracking-wider cursor-pointer ${
               mode === 'register'
-                ? 'bg-ink text-gold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-stone-900 text-white shadow-md'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
             }`}
           >
             Créer un Compte
@@ -179,10 +185,10 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-stone-900 text-gold border border-gold/40 font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3.5 px-6 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-3 cursor-pointer active:scale-95"
               >
                 <span>Connexion à mon compte</span>
-                <ArrowRight className="w-4 h-4 text-gold" />
+                <ArrowRight className="w-4 h-4 text-white" />
               </button>
             </form>
           ) : (
@@ -272,10 +278,10 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ initialMode = 'login' }) =
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-stone-900 text-gold border border-gold/40 font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3.5 px-6 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-extrabold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-3 cursor-pointer active:scale-95"
               >
                 <span>Créer mon Compte Client</span>
-                <ArrowRight className="w-4 h-4 text-gold" />
+                <ArrowRight className="w-4 h-4 text-white" />
               </button>
             </form>
           )}

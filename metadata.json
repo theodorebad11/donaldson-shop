@@ -1,6 +1,6 @@
 {
   "name": "DONALDSON SHOP",
   "description": "Boutique en ligne professionnelle d'articles de sport ultra élégants en FCFA avec espace client, espace admin, gestion des commandes, devis livraison et chat en direct.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

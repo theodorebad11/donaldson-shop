@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatFCFA, WHATSAPP_NUMBERS } from '../data/initialData';
-import { ShoppingBag, Trash2, ArrowRight, Truck, PhoneCall, CheckCircle, AlertCircle, ShoppingCart, Store, Globe } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowRight, Truck, PhoneCall, CheckCircle, AlertCircle, ShoppingCart, Store, Globe, Tag, Sparkles } from 'lucide-react';
 
 export const CartPage: React.FC = () => {
-  const { cart, updateCartQuantity, removeFromCart, clearCart, createOrder, currentUser, setActivePage } = useApp();
+  const { 
+    cart, 
+    updateCartQuantity, 
+    removeFromCart, 
+    clearCart, 
+    createOrder, 
+    currentUser, 
+    setActivePage, 
+    showToast,
+    validateAndApplyPromoCode,
+    incrementPromoCodeUsage,
+    openWhatsAppOrderModal
+  } = useApp();
 
   const [clientName, setClientName] = useState(
     currentUser ? `${currentUser.lastName} ${currentUser.firstName}` : ''
@@ -19,7 +31,33 @@ export const CartPage: React.FC = () => {
   const [orderCreated, setOrderCreated] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Promo Code State
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedDiscountPercent, setAppliedDiscountPercent] = useState(0);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [appliedPromoId, setAppliedPromoId] = useState<string | null>(null);
+
   const subtotalFCFA = cart.reduce((sum, item) => sum + (item.product.priceFCFA * item.quantity), 0);
+  const discountAmountFCFA = Math.round(subtotalFCFA * (appliedDiscountPercent / 100));
+  const finalTotalFCFA = Math.max(0, subtotalFCFA - discountAmountFCFA);
+
+  const handleApplyPromoCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+
+    const cartProductIds = cart.map(item => item.product.id);
+    const result = validateAndApplyPromoCode(code, cartProductIds);
+
+    if (result.valid) {
+      setAppliedDiscountPercent(result.discountPercent);
+      setAppliedPromoCode(result.promo?.code || code);
+      setAppliedPromoId(result.promo?.id || null);
+      showToast('Code Promo Valide ! 🎉', result.message, 'success');
+    } else {
+      showToast('Erreur Code Promo', result.message, 'error');
+    }
+  };
 
   const handleFinalizeOrder = (orderType: 'site_direct' | 'whatsapp') => {
     setErrorMsg(null);
@@ -77,22 +115,47 @@ export const CartPage: React.FC = () => {
     setOrderCreated(newOrder);
 
     if (orderType === 'whatsapp') {
-      const itemsList = newOrder.items.map(i => `- ${i.productName} (x${i.quantity}) : ${formatFCFA(i.priceFCFA * i.quantity)}`).join('\n');
-      const deliveryText = wantsDelivery 
-        ? `Livraison souhaitée à : ${newOrder.deliveryCity} - ${newOrder.deliveryAddress}`
-        : `Retrait prévu en magasin sur place (Bè - Lomé)`;
+      const getFullImgUrl = (img?: string) => {
+        if (!img) return '';
+        if (img.startsWith('http://') || img.startsWith('https://')) return img;
+        return window.location.origin + (img.startsWith('/') ? img : '/' + img);
+      };
 
-      const text = encodeURIComponent(
-        `Bonjour DONALDSON SHOP ! Je viens de passer la commande #${newOrder.id} sur votre site.\n\n` +
-        `Client : ${newOrder.clientName}\n` +
-        `Tél : ${newOrder.clientPhone}\n` +
-        `Email : ${newOrder.clientEmail}\n` +
-        `Mode : ${deliveryText}\n\n` +
-        `Articles :\n${itemsList}\n\n` +
-        `Total Articles : ${formatFCFA(newOrder.totalFCFA)}\n\n` +
-        `Merci de me confirmer la commande !`
-      );
-      window.open(`https://wa.me/${WHATSAPP_NUMBERS[0].raw}?text=${text}`, '_blank', 'noopener,noreferrer');
+      const firstItemImg = newOrder.items.find(i => i.imageUrl)?.imageUrl;
+      const mainPhotoUrl = getFullImgUrl(firstItemImg);
+
+      const itemsList = newOrder.items.map((i, idx) => {
+        const sizeStr = i.selectedSize ? ` (Taille: ${i.selectedSize})` : '';
+        return (
+          `🛒 *Article ${idx + 1} :* ${i.productName}${sizeStr}\n` +
+          `   - Quantité : x${i.quantity}\n` +
+          `   - Sous-Total : ${formatFCFA(i.priceFCFA * i.quantity)}`
+        );
+      }).join('\n\n');
+
+      const deliveryText = wantsDelivery 
+        ? `🚚 *Livraison à domicile :* ${newOrder.deliveryCity} - ${newOrder.deliveryAddress}`
+        : `🏪 *Retrait en magasin :* Bè - Lomé (Togo)`;
+
+      const msgText = 
+        `🛍️ *NOUVELLE COMMANDE WEB #${newOrder.id} — DONALDSON SHOP*\n\n` +
+        `👤 *CLIENT :* ${newOrder.clientName}\n` +
+        `📞 *TÉLÉPHONE :* ${newOrder.clientPhone}\n` +
+        `✉️ *EMAIL :* ${newOrder.clientEmail}\n` +
+        `${deliveryText}\n` +
+        (newOrder.deliveryNotes ? `📝 *Notes :* ${newOrder.deliveryNotes}\n` : '') +
+        `\n📦 *DÉTAIL DES ARTICLES :*\n\n${itemsList}\n\n` +
+        `💰 *TOTAL COMMANDE :* ${formatFCFA(newOrder.totalFCFA)}\n\n` +
+        `Bonjour DONALDSON SHOP ! Je viens de valider la commande #${newOrder.id} sur votre site web. Merci de m'envoyer la confirmation ainsi que le suivi de livraison !`;
+
+      openWhatsAppOrderModal({
+        message: msgText,
+        title: `Commande #${newOrder.id} Validée`,
+        subtitle: 'Choisissez votre ligne WhatsApp pour transmettre le récapitulatif :',
+        productName: `Panier DONALDSON SHOP (${cart.length} articles)`,
+        productPrice: newOrder.totalFCFA,
+        productImg: cart[0]?.product?.imageUrl
+      });
     }
   };
 
@@ -196,9 +259,9 @@ export const CartPage: React.FC = () => {
           
           {/* Cart Items List */}
           <div className="lg:col-span-2 space-y-4">
-            {cart.map((item) => (
+            {cart.map((item, index) => (
               <div
-                key={`${item.product.id}_${item.selectedSize}`}
+                key={`${item.product.id}_${item.selectedSize}_${index}`}
                 className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex items-center gap-4 transition-all hover:border-gold/40"
               >
                 <img
@@ -415,15 +478,58 @@ export const CartPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Code Promo Field */}
+            <form onSubmit={handleApplyPromoCode} className="pt-2 border-t border-stone-100">
+              <label className="block font-bold text-stone-700 text-xs mb-1 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-gold-dark" />
+                Code Promo / Réduction :
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  placeholder="Ex: DONALDSON10"
+                  className="flex-1 px-3 py-2 rounded-xl border border-stone-200 text-xs uppercase font-extrabold text-ink outline-none focus:border-gold"
+                />
+                <button
+                  type="submit"
+                  className="px-3.5 py-2 rounded-xl bg-stone-900 text-gold hover:bg-black font-bold text-xs border border-gold/30 transition-all"
+                >
+                  Appliquer
+                </button>
+              </div>
+              {appliedPromoCode && (
+                <div className="mt-1.5 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center justify-between">
+                  <span>Code <strong>{appliedPromoCode}</strong> (-{appliedDiscountPercent}%) actif</span>
+                  <button
+                    type="button"
+                    onClick={() => { setAppliedPromoCode(null); setAppliedDiscountPercent(0); setPromoInput(''); }}
+                    className="text-rose-600 hover:underline"
+                  >
+                    Retirer
+                  </button>
+                </div>
+              )}
+            </form>
+
             {/* Price Summary */}
             <div className="pt-2 border-t border-stone-100 space-y-2">
               <div className="flex justify-between text-xs text-stone-600">
-                <span>Total Articles ({cart.length}) :</span>
+                <span>Sous-total Articles ({cart.length}) :</span>
                 <span className="font-bold text-ink">{formatFCFA(subtotalFCFA)}</span>
               </div>
+
+              {discountAmountFCFA > 0 && (
+                <div className="flex justify-between text-xs text-emerald-700 font-bold">
+                  <span>Réduction Code Promo ({appliedDiscountPercent}%) :</span>
+                  <span>-{formatFCFA(discountAmountFCFA)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-base font-serif-title font-bold text-ink pt-2 border-t border-stone-100">
                 <span>Total à régler :</span>
-                <span className="text-ink font-black">{formatFCFA(subtotalFCFA)}</span>
+                <span className="text-ink font-black">{formatFCFA(finalTotalFCFA)}</span>
               </div>
             </div>
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import logoImg from '../assets/images/donaldson_shop_logo_1786794643658.jpg';
 import {
   ShoppingBag,
   User as UserIcon,
@@ -14,7 +15,14 @@ import {
   MessageSquare,
   Sparkles,
   LogIn,
-  UserPlus
+  UserPlus,
+  Home,
+  Store,
+  Heart,
+  Trash2,
+  CheckSquare,
+  Square,
+  CheckCheck
 } from 'lucide-react';
 import { SUPER_ADMIN_EMAIL } from '../data/initialData';
 
@@ -22,124 +30,226 @@ export const Navbar: React.FC = () => {
   const {
     currentUser,
     cart,
+    wishlistIds,
     notifications,
     activePage,
     setActivePage,
     logoutUser,
-    markNotificationAsRead
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    deleteNotification,
+    deleteMultipleNotifications,
+    clearAllNotifications,
+    getGuestDeviceId,
+    isAdmin
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [selectedNotifIds, setSelectedNotifIds] = useState<string[]>([]);
 
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const notifContainerRef = useRef<HTMLDivElement>(null);
+  const notifMobileRef = useRef<HTMLDivElement>(null);
 
-  // Unread notifications count
-  const unreadNotifs = notifications.filter(n => {
-    if (!currentUser) return false;
-    return n.targetUserId === 'ALL' || n.targetUserId === currentUser.id;
-  }).filter(n => currentUser && !n.readBy.includes(currentUser.id));
+  const activeUserId = currentUser?.id || getGuestDeviceId();
 
   const userNotifs = notifications.filter(n => {
-    if (!currentUser) return n.targetUserId === 'ALL';
-    return n.targetUserId === 'ALL' || n.targetUserId === currentUser.id;
+    return n.targetUserId === 'ALL' || n.targetUserId === activeUserId;
   });
 
-  const isAdmin = currentUser?.role === 'super_admin' || currentUser?.role === 'assistant_admin' || currentUser?.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const unreadNotifs = userNotifs.filter(n => !n.readBy.includes(activeUserId));
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Gentle bounce effect on cart icon when items are added
+  const [isCartBouncing, setIsCartBouncing] = useState(false);
+  const prevCartCountRef = useRef(cartCount);
+
+  useEffect(() => {
+    if (cartCount > prevCartCountRef.current) {
+      setIsCartBouncing(true);
+      const timer = setTimeout(() => {
+        setIsCartBouncing(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = cartCount;
+  }, [cartCount]);
+
+  // Automatically mark all notifications as read when opening or closing notification panel
+  useEffect(() => {
+    if (notifDropdownOpen) {
+      markAllNotificationsAsRead();
+    }
+  }, [notifDropdownOpen]);
+
+  useEffect(() => {
+    if (!notifDropdownOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      const isDesktopInside = notifContainerRef.current && notifContainerRef.current.contains(target);
+      const isMobileInside = notifMobileRef.current && notifMobileRef.current.contains(target);
+
+      if (!isDesktopInside && !isMobileInside) {
+        setNotifDropdownOpen(false);
+        markAllNotificationsAsRead();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [notifDropdownOpen]);
+
+  const toggleNotifDropdown = () => {
+    const nextState = !notifDropdownOpen;
+    setNotifDropdownOpen(nextState);
+    markAllNotificationsAsRead();
+  };
+
+  const toggleSelectNotif = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedNotifIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllNotifs = () => {
+    if (selectedNotifIds.length === userNotifs.length) {
+      setSelectedNotifIds([]);
+    } else {
+      setSelectedNotifIds(userNotifs.map(n => n.id));
+    }
+  };
+
+  const handleDeleteSelectedNotifs = () => {
+    if (selectedNotifIds.length === 0) return;
+    deleteMultipleNotifications(selectedNotifIds);
+    setSelectedNotifIds([]);
+  };
+
+  const handleClearAllNotifs = () => {
+    clearAllNotifications();
+    setSelectedNotifIds([]);
+  };
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20">
+      <header className="sticky top-0 z-40 bg-[#FDFCFB]/90 backdrop-blur-md border-b border-stone-200/80 shadow-xs max-w-full overflow-x-clip">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-1 sm:gap-4">
             
             {/* Logo Brand */}
             <div
-              onClick={() => setActivePage('shop')}
-              className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer group"
+              onClick={() => setActivePage('accueil')}
+              className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group min-w-0 shrink flex-1 xs:flex-initial"
             >
-              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-ink text-gold border border-gold/40 flex items-center justify-center font-serif-title font-bold text-xl sm:text-2xl shadow-sm group-hover:scale-105 transition-transform">
-                D
-              </div>
-              <div>
-                <span className="text-lg sm:text-2xl font-serif-title font-extrabold tracking-tight text-ink group-hover:text-gold-dark transition-colors">
+              <img
+                src={logoImg}
+                alt="DONALDSON SHOP Logo"
+                referrerPolicy="no-referrer"
+                className="h-8 xs:h-9 sm:h-11 w-auto object-contain rounded-xl shadow-xs border border-stone-200/80 group-hover:scale-105 transition-transform bg-white p-0.5 shrink-0"
+              />
+              <div className="flex flex-col justify-center min-w-0 overflow-hidden">
+                <span className="text-xs xs:text-sm sm:text-xl lg:text-2xl font-serif-title font-extrabold tracking-tight text-ink group-hover:text-gold-dark transition-colors whitespace-nowrap leading-tight block truncate">
                   DONALDSON <span className="text-gold italic font-editorial">SHOP</span>
                 </span>
-                <p className="text-[9px] sm:text-[10px] font-medium tracking-widest text-stone-500 uppercase -mt-0.5">
-                  Vente Articles Sportifs Pro & Élégants
+                <p className="hidden lg:block text-[10px] font-medium tracking-wider text-stone-500 uppercase mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+                  Équipements Sportifs Pro & Articles Haut de Gamme
                 </p>
               </div>
             </div>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1.5 font-medium text-stone-700 text-xs tracking-wider uppercase">
+            <nav className="hidden md:flex items-center gap-2 font-medium text-stone-700 text-xs tracking-wider uppercase">
               <button
-                onClick={() => setActivePage('shop')}
-                className={`px-4 py-2 rounded-xl transition-all ${
-                  activePage === 'shop'
-                    ? 'bg-ink text-gold font-bold shadow-xs'
+                onClick={() => setActivePage('accueil')}
+                className={`px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all ${
+                  activePage === 'accueil'
+                    ? 'bg-stone-900 text-white font-extrabold shadow-md'
                     : 'hover:bg-stone-100 text-stone-800'
                 }`}
               >
+                <Home className="w-3.5 h-3.5" />
+                Accueil
+              </button>
+
+              <button
+                onClick={() => setActivePage('boutique')}
+                className={`px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all ${
+                  activePage === 'boutique' || activePage === 'shop'
+                    ? 'bg-stone-900 text-white font-extrabold shadow-md'
+                    : 'hover:bg-stone-100 text-stone-800'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
                 Boutique
               </button>
 
               <button
                 onClick={() => setActivePage('annonces')}
-                className={`px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all ${
+                className={`px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all ${
                   activePage === 'annonces'
-                    ? 'bg-ink text-gold font-bold shadow-xs'
+                    ? 'bg-stone-900 text-white font-extrabold shadow-md'
                     : 'hover:bg-stone-100 text-stone-800'
                 }`}
               >
-                <Megaphone className="w-3.5 h-3.5 text-gold" />
+                <Megaphone className="w-3.5 h-3.5" />
                 Annonces
               </button>
 
               <button
                 onClick={() => setActivePage('aide')}
-                className={`px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all ${
+                className={`px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all ${
                   activePage === 'aide'
-                    ? 'bg-ink text-gold font-bold shadow-xs'
+                    ? 'bg-stone-900 text-white font-extrabold shadow-md'
                     : 'hover:bg-stone-100 text-stone-800'
                 }`}
               >
-                <HelpCircle className="w-3.5 h-3.5 text-gold" />
+                <HelpCircle className="w-3.5 h-3.5" />
                 Aide & Contact
               </button>
 
-              {currentUser && (
-                <button
-                  onClick={() => setActivePage('orders')}
-                  className={`px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all ${
-                    activePage === 'orders'
-                      ? 'bg-ink text-gold font-bold shadow-xs'
-                      : 'hover:bg-stone-100 text-stone-800'
-                  }`}
-                >
-                  <PackageCheck className="w-3.5 h-3.5 text-gold" />
-                  Commandes
-                </button>
-              )}
-
-              {isAdmin && (
-                <button
-                  onClick={() => setActivePage('admin')}
-                  className={`px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all ${
-                    activePage === 'admin'
-                      ? 'bg-gold text-ink font-bold shadow-xs'
-                      : 'bg-gold-light text-ink border border-gold/40 hover:bg-gold/20 font-bold'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4 text-ink" />
-                  Espace Admin
-                </button>
-              )}
+              <button
+                onClick={() => setActivePage('orders')}
+                className={`px-4 py-2.5 rounded-full flex items-center gap-1.5 transition-all ${
+                  activePage === 'orders'
+                    ? 'bg-stone-900 text-white font-extrabold shadow-md'
+                    : 'hover:bg-stone-100 text-stone-800'
+                }`}
+              >
+                <PackageCheck className="w-3.5 h-3.5" />
+                Suivi & Commandes
+              </button>
             </nav>
 
             {/* Desktop Right Controls */}
             <div className="hidden md:flex items-center gap-2 sm:gap-3">
               
+              {/* Prominent Espace Admin Button for Super Admin & Assistant Admin */}
+              {isAdmin && (
+                <button
+                  onClick={() => setActivePage('admin')}
+                  className={`px-4 py-2 rounded-full border transition-all flex items-center gap-2 cursor-pointer ${
+                    activePage === 'admin'
+                      ? 'bg-stone-900 text-white border-stone-900 font-black shadow-md scale-102'
+                      : 'bg-stone-100 text-stone-900 border-stone-300 hover:bg-stone-200 font-extrabold shadow-xs hover:shadow-md'
+                  }`}
+                  title="Accéder à l'Espace Administration"
+                >
+                  <ShieldCheck className={`w-4 h-4 shrink-0 ${activePage === 'admin' ? 'text-white' : 'text-stone-800'}`} />
+                  <div className="text-left leading-tight">
+                    <span className={`text-xs font-black block tracking-tight ${activePage === 'admin' ? 'text-white' : 'text-stone-900'}`}>
+                      Espace Admin
+                    </span>
+                  </div>
+                </button>
+              )}
+
               {/* AI Assistant Chat Button */}
               <button
                 onClick={() => setActivePage('chat')}
@@ -148,7 +258,7 @@ export const Navbar: React.FC = () => {
                     ? 'bg-ink text-gold border border-gold/50 shadow-md'
                     : 'bg-stone-100 text-stone-800 hover:bg-stone-200'
                 }`}
-                title="Assistant IA & Support Client"
+                title="Chat & Support Client"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -157,30 +267,48 @@ export const Navbar: React.FC = () => {
                 </span>
               </button>
 
+              {/* Favoris / Wishlist Icon */}
+              <button
+                onClick={() => setActivePage('boutique')}
+                className="p-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 relative transition-all border border-stone-200/60"
+                title="Mes Favoris"
+              >
+                <Heart className={`w-4 h-4 ${wishlistIds.length > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
+                {wishlistIds.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                    {wishlistIds.length}
+                  </span>
+                )}
+              </button>
+
               {/* Cart Icon */}
               <button
                 onClick={() => setActivePage('cart')}
-                className="p-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 relative transition-all border border-stone-200/60"
+                className={`p-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 relative transition-all border border-stone-200/60 cursor-pointer ${
+                  isCartBouncing ? 'animate-bounce ring-2 ring-amber-400 bg-amber-50' : ''
+                }`}
                 title="Mon Panier"
               >
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className={`w-4 h-4 transition-transform ${isCartBouncing ? 'scale-125 text-amber-600' : ''}`} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gold text-ink text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-xs">
+                  <span className={`absolute -top-1 -right-1 bg-gold text-ink text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-xs transition-transform ${
+                    isCartBouncing ? 'scale-125 bg-amber-500 text-stone-950 font-black' : ''
+                  }`}>
                     {cartCount}
                   </span>
                 )}
               </button>
 
               {/* Notifications Bell */}
-              <div className="relative">
+              <div ref={notifContainerRef} className="relative">
                 <button
-                  onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                  className="p-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 relative transition-all border border-stone-200/60"
+                  onClick={toggleNotifDropdown}
+                  className="p-2.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 relative transition-all border border-stone-200/60 cursor-pointer"
                   title="Notifications"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadNotifs.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-extrabold px-1.5 min-w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                       {unreadNotifs.length}
                     </span>
                   )}
@@ -188,36 +316,117 @@ export const Navbar: React.FC = () => {
 
                 {/* Notifications Dropdown */}
                 {notifDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50">
-                    <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-2">
-                      <h4 className="font-serif-title font-bold text-ink flex items-center gap-2">
+                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-stone-200 p-4 z-50 animate-fadeIn space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+                      <h4 className="font-serif-title font-bold text-ink flex items-center gap-2 text-sm">
                         <Bell className="w-4 h-4 text-gold" />
-                        Notifications Client
+                        <span>Notifications ({userNotifs.length})</span>
                       </h4>
-                      <span className="text-xs text-stone-500">{userNotifs.length} reçue(s)</span>
+                      <button
+                        onClick={toggleNotifDropdown}
+                        className="p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
+
+                    {/* Selection Toolbar */}
+                    {userNotifs.length > 0 && (
+                      <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-stone-50 border border-stone-200/80 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={toggleSelectAllNotifs}
+                          className="flex items-center gap-1.5 font-bold text-stone-700 hover:text-ink cursor-pointer"
+                        >
+                          {selectedNotifIds.length === userNotifs.length && userNotifs.length > 0 ? (
+                            <CheckSquare className="w-3.5 h-3.5 text-gold-dark" />
+                          ) : (
+                            <Square className="w-3.5 h-3.5 text-stone-400" />
+                          )}
+                          <span>{selectedNotifIds.length === userNotifs.length ? 'Désélectionner' : 'Tout sélectionner'}</span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5">
+                          {selectedNotifIds.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleDeleteSelectedNotifs}
+                              className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                              title="Supprimer la sélection"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Supprimer ({selectedNotifIds.length})</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={handleClearAllNotifs}
+                            className="px-2 py-1 rounded-lg bg-stone-200 hover:bg-rose-100 hover:text-rose-700 text-stone-700 font-bold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                            title="Tout effacer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Tout vider</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                       {userNotifs.length === 0 ? (
-                        <p className="text-xs text-stone-500 py-4 text-center">Aucune notification pour le moment.</p>
+                        <p className="text-xs text-stone-500 py-6 text-center">
+                          Aucune notification pour le moment.
+                        </p>
                       ) : (
                         userNotifs.map(notif => {
-                          const isRead = currentUser && notif.readBy.includes(currentUser.id);
+                          const isRead = notif.readBy.includes(activeUserId);
+                          const isSelected = selectedNotifIds.includes(notif.id);
+
                           return (
                             <div
                               key={notif.id}
                               onClick={() => markNotificationAsRead(notif.id)}
-                              className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                                isRead ? 'bg-stone-50 border-stone-200 text-stone-600' : 'bg-amber-50/80 border-gold/40 text-ink font-medium'
+                              className={`p-3 rounded-2xl border text-xs transition-all relative group flex gap-2.5 items-start ${
+                                isSelected
+                                  ? 'bg-amber-100/90 border-amber-400 font-medium shadow-xs'
+                                  : isRead
+                                    ? 'bg-stone-50 border-stone-200 text-stone-600'
+                                    : 'bg-amber-50/90 border-gold/40 text-ink font-semibold shadow-2xs'
                               }`}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-bold text-ink">{notif.title}</span>
-                                <span className="text-[10px] text-stone-400">
-                                  {new Date(notif.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+                              <button
+                                type="button"
+                                onClick={(e) => toggleSelectNotif(notif.id, e)}
+                                className="mt-0.5 text-stone-400 hover:text-gold-dark cursor-pointer shrink-0"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare className="w-4 h-4 text-gold-dark" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-stone-300" />
+                                )}
+                              </button>
+
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-bold text-ink">{notif.title}</span>
+                                  <span className="text-[10px] text-stone-400 font-mono shrink-0">
+                                    {new Date(notif.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="leading-relaxed text-[11px] text-stone-700">{notif.message}</p>
                               </div>
-                              <p className="leading-relaxed">{notif.message}</p>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notif.id);
+                                }}
+                                className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors opacity-70 group-hover:opacity-100 shrink-0 cursor-pointer"
+                                title="Supprimer cette notification"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           );
                         })
@@ -248,15 +457,17 @@ export const Navbar: React.FC = () => {
                 <div className="flex items-center gap-2 border-l border-stone-200 pl-2 sm:pl-3">
                   <button
                     onClick={() => setActivePage('login')}
-                    className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-ink hover:bg-stone-100 transition-all"
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-extrabold bg-stone-900 hover:bg-stone-800 text-white shadow-md transition-all cursor-pointer flex items-center gap-2 active:scale-95"
                   >
-                    Connexion
+                    <UserIcon className="w-4 h-4 text-white" />
+                    <span>Connexion</span>
                   </button>
                   <button
                     onClick={() => setActivePage('register')}
-                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-ink text-gold border border-gold/40 shadow-xs hover:bg-stone-900 transition-all"
+                    className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold border-2 border-stone-800 text-stone-900 hover:bg-stone-100 transition-all cursor-pointer flex items-center gap-2 active:scale-95"
                   >
-                    S'inscrire
+                    <UserPlus className="w-4 h-4 text-stone-900" />
+                    <span>S'inscrire</span>
                   </button>
                 </div>
               )}
@@ -264,33 +475,55 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Mobile Header Quick Controls & 3 Traits Menu Toggle */}
-            <div className="md:hidden flex items-center gap-2">
-              {/* Chat IA */}
+            <div className="md:hidden flex items-center gap-1 xs:gap-1.5 shrink-0 max-w-full">
+              {/* Espace Admin Button for Mobile Header */}
+              {isAdmin && (
+                <button
+                  onClick={() => setActivePage('admin')}
+                  className={`px-1.5 py-1.5 rounded-xl border border-stone-900 transition-all flex items-center gap-1 shrink-0 ${
+                    activePage === 'admin'
+                      ? 'bg-gold text-ink font-black shadow-md'
+                      : 'bg-[#FAF6ED] text-stone-900 font-extrabold hover:bg-amber-100 shadow-xs'
+                  }`}
+                  title="Espace Administration"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-stone-900 shrink-0" />
+                  <span className="text-[10px] font-black text-stone-900 leading-tight hidden xs:inline">
+                    Admin
+                  </span>
+                </button>
+              )}
+
+              {/* Chat */}
               <button
                 onClick={() => setActivePage('chat')}
-                className={`p-2 rounded-xl relative transition-all ${
+                className={`p-1.5 xs:p-2 rounded-xl relative transition-all shrink-0 ${
                   activePage === 'chat'
                     ? 'bg-ink text-gold border border-gold/50 shadow-md'
                     : 'bg-stone-100 text-stone-800'
                 }`}
-                title="Chatbot IA"
+                title="Chat DONALDSON"
               >
-                <MessageSquare className="w-5 h-5 text-ink" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <MessageSquare className="w-4 h-4 xs:w-5 xs:h-5 text-ink" />
+                <span className="absolute -top-1 -right-1 flex h-2 w-2 xs:h-2.5 xs:w-2.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 xs:h-2.5 xs:w-2.5 bg-gold"></span>
                 </span>
               </button>
 
               {/* Cart */}
               <button
                 onClick={() => setActivePage('cart')}
-                className="p-2 rounded-xl bg-stone-100 text-stone-800 relative"
+                className={`p-1.5 xs:p-2 rounded-xl bg-stone-100 text-stone-800 relative cursor-pointer transition-all shrink-0 ${
+                  isCartBouncing ? 'animate-bounce ring-2 ring-amber-400 bg-amber-50' : ''
+                }`}
                 title="Panier"
               >
-                <ShoppingBag className="w-5 h-5 text-ink" />
+                <ShoppingBag className={`w-4 h-4 xs:w-5 xs:h-5 text-ink transition-transform ${isCartBouncing ? 'scale-125 text-amber-600' : ''}`} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gold text-ink text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className={`absolute -top-1 -right-1 bg-gold text-ink text-[9px] xs:text-[10px] font-black w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full flex items-center justify-center transition-transform ${
+                    isCartBouncing ? 'scale-125 bg-amber-500 text-stone-950 font-black' : ''
+                  }`}>
                     {cartCount}
                   </span>
                 )}
@@ -298,13 +531,13 @@ export const Navbar: React.FC = () => {
 
               {/* Notifications */}
               <button
-                onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                className="p-2 rounded-xl bg-stone-100 text-stone-800 relative"
+                onClick={toggleNotifDropdown}
+                className="p-1.5 xs:p-2 rounded-xl bg-stone-100 text-stone-800 relative cursor-pointer shrink-0"
                 title="Notifications"
               >
-                <Bell className="w-5 h-5 text-ink" />
+                <Bell className="w-4 h-4 xs:w-5 xs:h-5 text-ink" />
                 {unreadNotifs.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] xs:text-[10px] font-bold w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full flex items-center justify-center">
                     {unreadNotifs.length}
                   </span>
                 )}
@@ -313,10 +546,10 @@ export const Navbar: React.FC = () => {
               {/* 3 Traits Hamburger Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2.5 rounded-xl bg-ink text-gold border border-gold/40 shadow-sm flex items-center justify-center"
+                className="p-2 xs:p-2.5 rounded-xl bg-ink text-gold border border-gold/40 shadow-sm flex items-center justify-center shrink-0 cursor-pointer"
                 title="Menu Navigation"
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                {mobileMenuOpen ? <X className="w-4 h-4 xs:w-5 xs:h-5" /> : <Menu className="w-4 h-4 xs:w-5 xs:h-5" />}
               </button>
             </div>
 
@@ -327,12 +560,23 @@ export const Navbar: React.FC = () => {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-stone-200 bg-[#FDFCFB] px-4 py-4 space-y-2 max-h-[70vh] overflow-y-auto shadow-2xl animate-fadeIn">
             <button
-              onClick={() => { setActivePage('shop'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase ${
-                activePage === 'shop' ? 'bg-ink text-gold font-bold' : 'text-stone-800 bg-stone-100'
+              onClick={() => { setActivePage('accueil'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase flex items-center gap-2 ${
+                activePage === 'accueil' ? 'bg-ink text-gold font-bold' : 'text-stone-800 bg-stone-100'
               }`}
             >
-              🛍️ Boutique Articles
+              <Home className="w-4 h-4 text-gold" />
+              <span>🏠 Accueil Shop</span>
+            </button>
+
+            <button
+              onClick={() => { setActivePage('boutique'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase flex items-center gap-2 ${
+                activePage === 'boutique' || activePage === 'shop' ? 'bg-ink text-gold font-bold' : 'text-stone-800 bg-stone-100'
+              }`}
+            >
+              <Store className="w-4 h-4 text-gold" />
+              <span>🛍️ Boutique Articles</span>
             </button>
 
             <button
@@ -370,17 +614,15 @@ export const Navbar: React.FC = () => {
               ❓ Aide & Contacts
             </button>
 
-            {currentUser && (
-              <button
-                onClick={() => { setActivePage('orders'); setMobileMenuOpen(false); }}
-                className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase flex items-center gap-2 ${
-                  activePage === 'orders' ? 'bg-ink text-gold' : 'text-stone-800 bg-stone-100'
-                }`}
-              >
-                <PackageCheck className="w-4 h-4 text-gold" />
-                📦 Mes Commandes
-              </button>
-            )}
+            <button
+              onClick={() => { setActivePage('orders'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs tracking-wider uppercase flex items-center gap-2 ${
+                activePage === 'orders' ? 'bg-ink text-gold' : 'text-stone-800 bg-stone-100'
+              }`}
+            >
+              <PackageCheck className="w-4 h-4 text-gold" />
+              🔍 Suivi & Commandes
+            </button>
 
             {isAdmin && (
               <button
@@ -431,44 +673,129 @@ export const Navbar: React.FC = () => {
 
       {/* Notifications Popover Modal for Mobile when triggered from bottom bar */}
       {notifDropdownOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl border border-stone-200 space-y-3 mb-16 sm:mb-0">
+        <div 
+          onClick={() => {
+            setNotifDropdownOpen(false);
+            markAllNotificationsAsRead();
+          }}
+          className="fixed inset-0 z-50 md:hidden flex items-end sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+        >
+          <div 
+            ref={notifMobileRef}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl w-full max-w-md p-5 shadow-2xl border border-stone-200 space-y-3 mb-16 sm:mb-0"
+          >
             <div className="flex items-center justify-between pb-2 border-b border-stone-100">
               <h4 className="font-serif-title font-bold text-ink flex items-center gap-2 text-sm">
                 <Bell className="w-4 h-4 text-gold" />
-                Notifications ({userNotifs.length})
+                <span>Notifications ({userNotifs.length})</span>
               </h4>
               <button
-                onClick={() => setNotifDropdownOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                onClick={() => {
+                  setNotifDropdownOpen(false);
+                  markAllNotificationsAsRead();
+                }}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2">
+            {/* Selection Toolbar */}
+            {userNotifs.length > 0 && (
+              <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-stone-50 border border-stone-200/80 text-[11px]">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllNotifs}
+                  className="flex items-center gap-1.5 font-bold text-stone-700 hover:text-ink cursor-pointer"
+                >
+                  {selectedNotifIds.length === userNotifs.length && userNotifs.length > 0 ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-gold-dark" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-stone-400" />
+                  )}
+                  <span>{selectedNotifIds.length === userNotifs.length ? 'Désélectionner' : 'Tout sélectionner'}</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {selectedNotifIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteSelectedNotifs}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                      title="Supprimer la sélection"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Supprimer ({selectedNotifIds.length})</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleClearAllNotifs}
+                    className="px-2 py-1 rounded-lg bg-stone-200 hover:bg-rose-100 hover:text-rose-700 text-stone-700 font-bold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                    title="Tout effacer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Tout vider</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {userNotifs.length === 0 ? (
-                <p className="text-xs text-stone-500 py-4 text-center">Aucune notification pour le moment.</p>
+                <p className="text-xs text-stone-500 py-6 text-center">Aucune notification pour le moment.</p>
               ) : (
                 userNotifs.map(notif => {
-                  const isRead = currentUser && notif.readBy.includes(currentUser.id);
+                  const isRead = notif.readBy.includes(activeUserId);
+                  const isSelected = selectedNotifIds.includes(notif.id);
+
                   return (
                     <div
                       key={notif.id}
-                      onClick={() => {
-                        markNotificationAsRead(notif.id);
-                      }}
-                      className={`p-3 rounded-xl border text-xs cursor-pointer transition-all ${
-                        isRead ? 'bg-stone-50 border-stone-200 text-stone-600' : 'bg-amber-50/80 border-gold/40 text-ink font-medium'
+                      onClick={() => markNotificationAsRead(notif.id)}
+                      className={`p-3 rounded-2xl border text-xs transition-all relative group flex gap-2.5 items-start ${
+                        isSelected
+                          ? 'bg-amber-100/90 border-amber-400 font-medium shadow-xs'
+                          : isRead
+                            ? 'bg-stone-50 border-stone-200 text-stone-600'
+                            : 'bg-amber-50/90 border-gold/40 text-ink font-semibold shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-ink">{notif.title}</span>
-                        <span className="text-[10px] text-stone-400">
-                          {new Date(notif.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSelectNotif(notif.id, e)}
+                        className="mt-0.5 text-stone-400 hover:text-gold-dark cursor-pointer shrink-0"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-gold-dark" />
+                        ) : (
+                          <Square className="w-4 h-4 text-stone-300" />
+                        )}
+                      </button>
+
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-ink text-xs">{notif.title}</span>
+                          <span className="text-[10px] text-stone-400 font-mono shrink-0">
+                            {new Date(notif.createdAt).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="leading-relaxed text-[11px] text-stone-700">{notif.message}</p>
                       </div>
-                      <p className="leading-relaxed text-[11px]">{notif.message}</p>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(notif.id);
+                        }}
+                        className="p-1 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0 cursor-pointer"
+                        title="Supprimer cette notification"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   );
                 })
@@ -479,54 +806,55 @@ export const Navbar: React.FC = () => {
       )}
 
       {/* FIXED MOBILE STICKY BOTTOM NAVIGATION BAR */}
-      {/* Contains: Chatbot, Panier, Notifications, Connexion, Inscription (or Compte/Déconnexion), and 3 Traits (Menu) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#121212]/95 backdrop-blur-lg border-t border-gold/30 text-white shadow-2xl md:hidden px-2 py-2 flex items-center justify-around text-[10px] font-bold">
+      {/* Contains: Accueil, Boutique, Panier, Notifs, Compte, Aide */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#121212]/95 backdrop-blur-lg border-t border-gold/30 text-white shadow-2xl md:hidden px-1 py-1.5 flex items-center justify-around text-[9px] font-bold">
         
-        {/* 1. Chatbot */}
+        {/* 1. Accueil */}
         <button
           onClick={() => {
-            setActivePage('chat');
+            setActivePage('accueil');
             setNotifDropdownOpen(false);
           }}
-          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-            activePage === 'chat' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            activePage === 'accueil' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
           }`}
         >
-          <div className="relative">
-            <MessageSquare className="w-5 h-5 text-gold" />
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold"></span>
-            </span>
-          </div>
-          <span>Chat IA</span>
+          <Home className="w-5 h-5 text-gold" />
+          <span>Accueil</span>
         </button>
 
-        {/* 2. Panier */}
+        {/* 2. Boutique */}
         <button
           onClick={() => {
-            setActivePage('cart');
+            setActivePage('boutique');
             setNotifDropdownOpen(false);
           }}
-          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-            activePage === 'cart' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            activePage === 'boutique' || activePage === 'shop' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
           }`}
         >
-          <div className="relative">
-            <ShoppingBag className="w-5 h-5 text-gold" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-gold text-ink text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
-          </div>
-          <span>Panier</span>
+          <Store className="w-5 h-5 text-gold" />
+          <span>Boutique</span>
         </button>
 
-        {/* 3. Notifications */}
+        {/* 3. Annonces */}
         <button
-          onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
+          onClick={() => {
+            setActivePage('annonces');
+            setNotifDropdownOpen(false);
+          }}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            activePage === 'annonces' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
+          }`}
+        >
+          <Megaphone className="w-5 h-5 text-gold" />
+          <span>Annonces</span>
+        </button>
+
+        {/* 4. Notifs */}
+        <button
+          onClick={toggleNotifDropdown}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
             notifDropdownOpen ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
           }`}
         >
@@ -541,76 +869,32 @@ export const Navbar: React.FC = () => {
           <span>Notifs</span>
         </button>
 
-        {/* 4. Connexion / Inscription OR Compte / Déco */}
-        {currentUser ? (
-          <>
-            <button
-              onClick={() => {
-                setActivePage('account');
-                setNotifDropdownOpen(false);
-              }}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-                activePage === 'account' ? 'text-gold font-extrabold bg-white/10' : 'text-amber-300 hover:text-white'
-              }`}
-            >
-              <UserIcon className="w-5 h-5 text-amber-300" />
-              <span>Compte</span>
-            </button>
-
-            <button
-              onClick={() => {
-                logoutUser();
-                setActivePage('shop');
-                setNotifDropdownOpen(false);
-              }}
-              className="flex flex-col items-center gap-1 p-1.5 rounded-xl text-rose-400 hover:text-rose-300 transition-all"
-            >
-              <LogOut className="w-5 h-5 text-rose-400" />
-              <span>Déco</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => {
-                setActivePage('login');
-                setNotifDropdownOpen(false);
-              }}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-                activePage === 'login' ? 'text-gold font-extrabold bg-white/10' : 'text-amber-300 hover:text-white'
-              }`}
-            >
-              <LogIn className="w-5 h-5 text-amber-300" />
-              <span>Connexion</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActivePage('register');
-                setNotifDropdownOpen(false);
-              }}
-              className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-                activePage === 'register' ? 'text-gold font-extrabold bg-white/10' : 'text-amber-300 hover:text-white'
-              }`}
-            >
-              <UserPlus className="w-5 h-5 text-amber-300" />
-              <span>Inscription</span>
-            </button>
-          </>
-        )}
-
-        {/* 5. 3 Traits Menu Toggle */}
+        {/* 5. Compte */}
         <button
           onClick={() => {
-            setMobileMenuOpen(!mobileMenuOpen);
+            setActivePage(currentUser ? 'account' : 'login');
             setNotifDropdownOpen(false);
           }}
-          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl transition-all ${
-            mobileMenuOpen ? 'text-gold bg-gold/20 font-extrabold' : 'text-stone-300 hover:text-white'
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            activePage === 'account' || activePage === 'login' || activePage === 'register' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
           }`}
         >
-          {mobileMenuOpen ? <X className="w-5 h-5 text-gold" /> : <Menu className="w-5 h-5 text-gold" />}
-          <span className="text-[9px]">3 Traits</span>
+          <UserIcon className="w-5 h-5 text-gold" />
+          <span>Compte</span>
+        </button>
+
+        {/* 6. Aide */}
+        <button
+          onClick={() => {
+            setActivePage('aide');
+            setNotifDropdownOpen(false);
+          }}
+          className={`flex flex-col items-center gap-0.5 p-1 rounded-xl transition-all ${
+            activePage === 'aide' ? 'text-gold font-extrabold bg-white/10' : 'text-stone-300 hover:text-white'
+          }`}
+        >
+          <HelpCircle className="w-5 h-5 text-gold" />
+          <span>Aide</span>
         </button>
 
       </div>
